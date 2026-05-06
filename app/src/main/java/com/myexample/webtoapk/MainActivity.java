@@ -506,6 +506,14 @@ public class MainActivity extends AppCompatActivity {
         CookieManager.getInstance().flush();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        webview.onResume();
+        webview.resumeTimers();
+        webview.invalidate();
+    }
+
     // TODO idk what do with this. rly need?
     // @Override
     // protected void onPause() {
