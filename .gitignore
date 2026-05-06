@@ -2,6 +2,7 @@
 /webapk.conf
 /app/my-release-key.jks
 .gradle
+.gradle-cache/
 app/build/
 jvm/
 cmdline-tools/
