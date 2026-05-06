@@ -1,6 +1,7 @@
 *.iml
 /webapk.conf
+/app/my-release-key.jks
 .gradle
-./app/build
-./jvm
-./cmdline-tools
+app/build/
+jvm/
+cmdline-tools/
