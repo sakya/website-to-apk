@@ -1,3 +1,6 @@
 *.iml
+/webapk.conf
 .gradle
 ./app/build
+./jvm
+./cmdline-tools
