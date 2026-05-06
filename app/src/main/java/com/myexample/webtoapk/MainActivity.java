@@ -94,6 +94,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String NOTIFICATION_CHANNEL_NAME = "Web App Notifications";
 
     private WebView webview;
+    private SwipeRefreshLayout swipe;
     private UserScriptManager userScriptManager;
     private ProgressBar spinner;
     private View mainLayout;
