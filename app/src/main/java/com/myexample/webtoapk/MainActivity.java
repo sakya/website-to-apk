@@ -250,9 +250,12 @@ public class MainActivity extends AppCompatActivity {
         webview.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
 
         CookieManager cookieManager = CookieManager.getInstance();
-        CookieManager.getInstance().setAcceptThirdPartyCookies(webview, true);
-        cookieManager.setCookie(mainURL, cookies);
-        cookieManager.flush();
+        cookieManager.setAcceptCookie(true);
+        cookieManager.setAcceptThirdPartyCookies(webview, true);
+        if (cookies.length() > 0) {
+          cookieManager.setCookie(mainURL, cookies);
+          cookieManager.flush();
+        }
 
         // Image upload support
         fileChooserLauncher = registerForActivityResult(
@@ -494,6 +497,13 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         webview.saveState(outState);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        CookieManager.getInstance().flush();
     }
 
     // TODO idk what do with this. rly need?
