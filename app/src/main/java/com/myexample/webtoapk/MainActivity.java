@@ -743,30 +743,20 @@ public class MainActivity extends AppCompatActivity {
 
             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.setType("image/*");
-
-            // Проверяем параметры файлового диалога
-            String[] acceptTypes = fileChooserParams.getAcceptTypes();
-            if (acceptTypes.length > 0 && acceptTypes[0] != null && !acceptTypes[0].isEmpty()) {
-                if (acceptTypes[0].contains("image")) {
-                    intent.setType("image/*");
-                } else {
-                    intent.setType("*/*");
-                }
-            }
+            intent.setType("*/*");
 
             // Поддержка множественного выбора
             if (fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) {
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             }
 
-            Intent chooserIntent = Intent.createChooser(intent, "Выберите файл");
+            Intent chooserIntent = Intent.createChooser(intent, "Choose a file");
 
             try {
                 fileChooserLauncher.launch(chooserIntent);
             } catch (ActivityNotFoundException e) {
                 mFilePathCallback = null;
-                Toast.makeText(MainActivity.this, "Невозможно открыть файловый менеджер", Toast.LENGTH_LONG).show();
+                Toast.makeText(MainActivity.this, "Unable to open file manager", Toast.LENGTH_LONG).show();
                 return false;
             }
 
