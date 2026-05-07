@@ -3,10 +3,6 @@ set -eu
 
 # Build directory
 readonly BUILD_DIR='build'
-mkdir -p ${BUILD_DIR} && find ${BUILD_DIR} -mindepth 1 -delete
-
-#Copy base project to build directory
-cp -r "app" "${BUILD_DIR}"
 
 # Color definitions
 readonly RED='\033[0;31m'
@@ -274,8 +270,7 @@ keygen() {
 
 clean() {
     info "Cleaning build files..."
-    try rm -rf ${BUILD_DIR}/app/build .gradle
-    apply_config ${BUILD_DIR}/app/default.conf
+    try rm -rf ${BUILD_DIR}
     log "Clean completed"
 }
 
@@ -287,7 +282,7 @@ chid() {
         error "Invalid application ID. Use only letters, numbers and underscores, start with a letter"
     fi
 
-    try "find . -type f \( -name '*.gradle' -o -name '*.java' -o -name '*.xml' \) -exec \
+    try "find "${BUILD_DIR}" -type f \( -name '*.gradle' -o -name '*.java' -o -name '*.xml' \) -exec \
         sed -i 's/com\.\([a-zA-Z0-9_]*\)\.webtoapk/com.$1.webtoapk/g' {} +"
 
     if [ "$1" = "$appname" ]; then
@@ -297,6 +292,7 @@ chid() {
     info "Old name: com.$appname.webtoapk"
     info "Renaming to: com.$1.webtoapk"
 
+    rm -rf "${BUILD_DIR}/app/src/main/java/com/$1"
     try "mv ${BUILD_DIR}/app/src/main/java/com/$appname ${BUILD_DIR}/app/src/main/java/com/$1"
 
     appname=$1
@@ -687,7 +683,7 @@ regradle() {
     cat > gradle/wrapper/gradle-wrapper.properties << EOL
 distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-7.4-all.zip
+distributionUrl=https\://services.gradle.org/distributions/gradle-7.4-bin.zip
 zipStoreBase=GRADLE_USER_HOME
 zipStorePath=wrapper/dists
 EOL
@@ -785,6 +781,11 @@ build() {
         config_arg="$config_arg/webapk.conf"
     fi
 
+    mkdir -p ${BUILD_DIR} && find ${BUILD_DIR} -mindepth 1 -delete
+
+    #Copy base project to build directory
+    cp -r "app" "${BUILD_DIR}"
+
     apply_config "$config_arg"
     apk
 }
@@ -797,10 +798,11 @@ ORIGINAL_PWD="$PWD"
 try cd "$(dirname "$0")"
 
 export ANDROID_HOME=$PWD/cmdline-tools/
-appname=$(grep -Po '(?<=applicationId "com\.)[^.]*' ${BUILD_DIR}/app/build.gradle)
+appname=$(grep -Po '(?<=applicationId "com\.)[^.]*' app/build.gradle)
 
 # Set Gradle's cache directory to be local to the project
 export GRADLE_USER_HOME=$PWD/.gradle-cache
+export GRADLE_OPTS="-Dorg.gradle.internal.http.connectionTimeout=300000 -Dorg.gradle.internal.http.socketTimeout=300000"
 
 command -v wget >/dev/null 2>&1 || error "wget not found. Please install wget"
 
