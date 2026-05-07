@@ -34,6 +34,7 @@ confirmOpenInBrowser = true         # Show confirmation before opening external 
 
 allowOpenMobileApp = false          # Block external app links/schemes
 enablePullToRefresh = true          # Enable pull to refresh
+forceLocale = en-US                 # Force the locale of the application
 ```
 
 3. Generate signing key (only needed once, keep the generated file safe):

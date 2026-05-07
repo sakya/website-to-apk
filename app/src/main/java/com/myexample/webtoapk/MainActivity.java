@@ -124,6 +124,7 @@ public class MainActivity extends AppCompatActivity {
     String cookies = "";
     String basicAuth = "";
     String userAgent = "";
+    String forceLocale = "";
     boolean blockLocalhostRequests = true;
     boolean JSEnabled = true;
     boolean JSCanOpenWindowsAutomatically = true;
@@ -147,6 +148,17 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        if (forceLocale.length() > 0) {
+          String[] parts = forceLocale.split("-");
+          if (parts.length() == 2) {
+            Locale locale = new Locale(parts[0], parts[1]);
+            Locale.setDefault(locale);
+
+            Configuration config = new Configuration();
+            config.setLocale(locale);
+          }
+        }
+
         if (forceDarkTheme) {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         }
