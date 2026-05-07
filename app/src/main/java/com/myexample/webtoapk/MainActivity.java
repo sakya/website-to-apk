@@ -130,9 +130,7 @@ public class MainActivity extends AppCompatActivity {
     boolean DomStorageEnabled = true;
     boolean DatabaseEnabled = true;
     boolean MediaPlaybackRequiresUserGesture = true;
-    boolean SavePassword = true;
     boolean AllowFileAccess = true;
-    boolean AllowFileAccessFromFileURLs = true;
     boolean showDetailsOnErrorScreen = false;
     boolean forceLandscapeMode = false;
     boolean edgeToEdge = false;
@@ -207,14 +205,14 @@ public class MainActivity extends AppCompatActivity {
         webSettings.setDomStorageEnabled(DomStorageEnabled);
         webSettings.setDatabaseEnabled(DatabaseEnabled);
         webSettings.setMediaPlaybackRequiresUserGesture(MediaPlaybackRequiresUserGesture);
-        webSettings.setSavePassword(SavePassword);
         webSettings.setAllowFileAccess(AllowFileAccess);
-        webSettings.setAllowFileAccessFromFileURLs(AllowFileAccessFromFileURLs);
         webSettings.setUseWideViewPort(true);
         webSettings.setLoadWithOverviewMode(true);
         webview.setWebContentsDebuggingEnabled(DebugWebView);
 
         swipe = findViewById(R.id.swipeRefresh);
+        swipe.setProgressBackgroundColorSchemeColor(ContextCompat.getColor(this, R.color.windowBackgroundColor));
+        swipe.setColorSchemeColors(ContextCompat.getColor(this, R.color.textColorPrimary));
         swipe.setOnRefreshListener(() -> webview.reload());
         swipe.setEnabled(enablePullToRefresh);
         if (enablePullToRefresh) {

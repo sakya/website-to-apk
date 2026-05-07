@@ -122,9 +122,7 @@ JSCanOpenWindowsAutomatically = true  # Allow JS to open new windows/popups
 
 DomStorageEnabled = true              # Enable HTML5 DOM storage
 DatabaseEnabled = true                # Enable HTML5 Web SQL Database
-SavePassword = true                   # Allow saving passwords in WebView
 AllowFileAccess = true
-AllowFileAccessFromFileURLs = true
 forceLandscapeMode = false            # Lock screen orientation to landscape
 
 showDetailsOnErrorScreen = false      # Show connection error details for user
