@@ -151,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         if (forceLocale.length() > 0) {
           String[] parts = forceLocale.split("-");
-          if (parts.length() == 2) {
+          if (parts.length == 2) {
             Locale locale = new Locale(parts[0], parts[1]);
             Locale.setDefault(locale);
 
