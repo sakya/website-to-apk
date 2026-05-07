@@ -674,8 +674,8 @@ get_tools() {
     info "Installing necessary SDK components..."
     try "'$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager' --sdk_root=$ANDROID_HOME \
         'platform-tools' \
-        'platforms;android-33' \
-        'build-tools;33.0.2'"
+        'platforms;android-34' \
+        'build-tools;34.0.0'"
 
     log "Android SDK successfully installed!"
 }
@@ -689,13 +689,13 @@ regradle() {
     cat > gradle/wrapper/gradle-wrapper.properties << EOL
 distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-7.4-bin.zip
+distributionUrl=https\://services.gradle.org/distributions/gradle-8.13-bin.zip
 zipStoreBase=GRADLE_USER_HOME
 zipStorePath=wrapper/dists
 EOL
 
-    try wget -q --show-progress https://raw.githubusercontent.com/gradle/gradle/v7.4.0/gradle/wrapper/gradle-wrapper.jar -O gradle/wrapper/gradle-wrapper.jar
-    try wget -q --show-progress https://raw.githubusercontent.com/gradle/gradle/v7.4.0/gradlew -O gradlew
+    try wget -q --show-progress https://raw.githubusercontent.com/gradle/gradle/v8.13/gradle/wrapper/gradle-wrapper.jar -O gradle/wrapper/gradle-wrapper.jar
+    try wget -q --show-progress https://raw.githubusercontent.com/gradle/gradle/v8.13/gradlew -O gradlew
     try chmod +x gradlew
 
     log "Gradle reinstalled successfully"
@@ -787,7 +787,8 @@ build() {
         config_arg="$config_arg/webapk.conf"
     fi
 
-    mkdir -p ${BUILD_DIR} && find ${BUILD_DIR} -mindepth 1 -delete
+    try "rm -rf '${BUILD_DIR}'"
+    mkdir "${BUILD_DIR}"
 
     #Copy base project to build directory
     cp -r "app" "${BUILD_DIR}"

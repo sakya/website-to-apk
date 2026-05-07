@@ -4,7 +4,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:7.3.0'
+        classpath 'com.android.tools.build:gradle:8.5.0'
     }
 }
 
@@ -20,11 +20,11 @@ apply plugin: 'com.android.application'
 android {
     namespace 'com.myexample.webtoapk'
 
-    compileSdkVersion 33
+    compileSdkVersion 34
     defaultConfig {
         applicationId "com.myexample.webtoapk"
         minSdkVersion 24
-        targetSdkVersion 33
+        targetSdkVersion 34
         versionCode 1
         versionName "1.0"
     }
@@ -58,6 +58,10 @@ android {
             signingConfig signingConfigs.release
         }
     }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ["-Xlint:deprecation"]
 }
 
 dependencies {
