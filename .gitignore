@@ -3,6 +3,6 @@
 /app/my-release-key.jks
 .gradle
 .gradle-cache/
-app/build/
+build
 jvm/
 cmdline-tools/

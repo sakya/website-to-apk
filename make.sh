@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 set -eu
 
+# Build directory
+readonly BUILD_DIR='build'
+mkdir -p ${BUILD_DIR} && find ${BUILD_DIR} -mindepth 1 -delete
+
+#Copy base project to build directory
+cp -r "app" "${BUILD_DIR}"
+
 # Color definitions
 readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
@@ -54,7 +61,7 @@ try() {
 
 
 set_var() {
-    local java_file="app/src/main/java/com/$appname/webtoapk/MainActivity.java"
+    local java_file="${BUILD_DIR}/app/src/main/java/com/$appname/webtoapk/MainActivity.java"
     [ ! -f "$java_file" ] && error "MainActivity.java not found"
 
     local pattern="$@"
@@ -124,7 +131,7 @@ set_var() {
 
 
 merge_config_with_default() {
-    local default_conf="app/default.conf"
+    local default_conf="${BUILD_DIR}/app/default.conf"
     local user_conf="$1"
     local merged_conf
     merged_conf=$(mktemp)
@@ -208,24 +215,24 @@ apply_config() {
 
 
 apk() {
-    if [ ! -f "app/my-release-key.jks" ]; then
+    if [ ! -f "${BUILD_DIR}/app/my-release-key.jks" ]; then
         error "Keystore file not found. Run './make.sh keygen' first"
     fi
 
-    rm -f app/build/outputs/apk/release/app-release.apk
+    rm -f ${BUILD_DIR}/app/build/outputs/apk/release/app-release.apk
 
     info "Building APK..."
     try "./gradlew assembleRelease --no-daemon --quiet"
 
-    if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
+    if [ -f "${BUILD_DIR}/app/build/outputs/apk/release/app-release.apk" ]; then
         log "APK successfully built and signed"
-        try "cp app/build/outputs/apk/release/app-release.apk '$appname.apk'"
+        try "cp ${BUILD_DIR}/app/build/outputs/apk/release/app-release.apk '$appname.apk'"
         echo -e "${BOLD}----------------"
         echo -e "Final APK copied to: ${GREEN}$appname.apk${NC}"
-        echo -e "Size: ${BLUE}$(du -h app/build/outputs/apk/release/app-release.apk | cut -f1)${NC}"
+        echo -e "Size: ${BLUE}$(du -h ${BUILD_DIR}/app/build/outputs/apk/release/app-release.apk | cut -f1)${NC}"
         echo -e "Package: ${BLUE}com.${appname}.webtoapk${NC}"
-        echo -e "App name: ${BLUE}$(grep -o 'app_name">[^<]*' app/src/main/res/values/strings.xml | cut -d'>' -f2)${NC}"
-        echo -e "URL: ${BLUE}$(grep 'String mainURL' app/src/main/java/com/$appname/webtoapk/*.java | cut -d'"' -f2)${NC}"
+        echo -e "App name: ${BLUE}$(grep -o 'app_name">[^<]*' ${BUILD_DIR}/app/src/main/res/values/strings.xml | cut -d'>' -f2)${NC}"
+        echo -e "URL: ${BLUE}$(grep 'String mainURL' ${BUILD_DIR}/app/src/main/java/com/$appname/webtoapk/*.java | cut -d'"' -f2)${NC}"
         echo -e "${BOLD}----------------${NC}"
     else
         error "Build failed"
@@ -234,7 +241,7 @@ apk() {
 
 test() {
     info "Detected app name: $appname"
-    try "adb install app/build/outputs/apk/release/app-release.apk"
+    try "adb install ${BUILD_DIR}/app/build/outputs/apk/release/app-release.apk"
     try "adb logcat -c" # clean logs
     try "adb shell am start -n com.$appname.webtoapk/.MainActivity"
     echo "=========================="
@@ -249,7 +256,7 @@ test() {
 }
 
 keygen() {
-    if [ -f "app/my-release-key.jks" ]; then
+    if [ -f "${BUILD_DIR}/app/my-release-key.jks" ]; then
         warn "Keystore already exists"
         read -p "Do you want to replace it? (y/N) " -n 1 -r
         echo
@@ -257,18 +264,18 @@ keygen() {
             info "Cancelled"
             return 1
         fi
-        rm app/my-release-key.jks
+        rm ${BUILD_DIR}/app/my-release-key.jks
     fi
 
     info "Generating keystore..."
-    try "keytool -genkey -v -keystore app/my-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my -storepass '123456' -keypass '123456' -dname '$INFO'"
+    try "keytool -genkey -v -keystore ${BUILD_DIR}/app/my-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my -storepass '123456' -keypass '123456' -dname '$INFO'"
     log "Keystore generated successfully"
 }
 
 clean() {
     info "Cleaning build files..."
-    try rm -rf app/build .gradle
-    apply_config app/default.conf
+    try rm -rf ${BUILD_DIR}/app/build .gradle
+    apply_config ${BUILD_DIR}/app/default.conf
     log "Clean completed"
 }
 
@@ -290,7 +297,7 @@ chid() {
     info "Old name: com.$appname.webtoapk"
     info "Renaming to: com.$1.webtoapk"
 
-    try "mv app/src/main/java/com/$appname app/src/main/java/com/$1"
+    try "mv ${BUILD_DIR}/app/src/main/java/com/$appname ${BUILD_DIR}/app/src/main/java/com/$1"
 
     appname=$1
 
@@ -306,7 +313,7 @@ rename() {
     fi
 
     # Найти все файлы strings.xml в различных языковых директориях
-    find app/src/main/res/values* -name "strings.xml" | while read xml_file; do
+    find ${BUILD_DIR}/app/src/main/res/values* -name "strings.xml" | while read xml_file; do
         current_name=$(grep -o 'app_name">[^<]*' "$xml_file" | cut -d'>' -f2)
         if [ "$current_name" = "$new_name" ]; then
             continue
@@ -327,7 +334,7 @@ rename() {
 
 
 set_deep_link() {
-    local manifest_file="app/src/main/AndroidManifest.xml"
+    local manifest_file="${BUILD_DIR}/app/src/main/AndroidManifest.xml"
     local hosts_input="$@"
     local tmp_file
     tmp_file=$(mktemp)
@@ -409,7 +416,7 @@ set_deep_link() {
 }
 
 set_network_security_config() {
-    local manifest_file="app/src/main/AndroidManifest.xml"
+    local manifest_file="${BUILD_DIR}/app/src/main/AndroidManifest.xml"
     local config_attr='android:networkSecurityConfig="@xml/network_security_config"'
     local enabled="$1"
 
@@ -448,8 +455,8 @@ set_network_security_config() {
 
 set_icon() {
     local icon_path="$@"
-    local default_icon="$PWD/app/example.png"
-    local dest_file="app/src/main/res/mipmap/ic_launcher.png"
+    local default_icon="$PWD/${BUILD_DIR}/app/example.png"
+    local dest_file="${BUILD_DIR}/app/src/main/res/mipmap/ic_launcher.png"
 
     # If no icon provided, use default
     if [ -z "$icon_path" ]; then
@@ -489,7 +496,7 @@ set_icon() {
 
 
 set_userscripts() {
-    local scripts_dir="app/src/main/assets/userscripts"
+    local scripts_dir="${BUILD_DIR}/app/src/main/assets/userscripts"
 
     # Create destination directory if it doesn't exist
     mkdir -p "$scripts_dir"
@@ -599,7 +606,7 @@ set_userscripts() {
 update_permission() {
     local permission_name="$1"
     local enabled="$2"
-    local manifest_file="app/src/main/AndroidManifest.xml"
+    local manifest_file="${BUILD_DIR}/app/src/main/AndroidManifest.xml"
 
     # Construct the full permission tag
     local permission_tag="<uses-permission android:name=\"$permission_name\" />"
@@ -790,7 +797,7 @@ ORIGINAL_PWD="$PWD"
 try cd "$(dirname "$0")"
 
 export ANDROID_HOME=$PWD/cmdline-tools/
-appname=$(grep -Po '(?<=applicationId "com\.)[^.]*' app/build.gradle)
+appname=$(grep -Po '(?<=applicationId "com\.)[^.]*' ${BUILD_DIR}/app/build.gradle)
 
 # Set Gradle's cache directory to be local to the project
 export GRADLE_USER_HOME=$PWD/.gradle-cache
