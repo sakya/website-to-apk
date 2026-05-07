@@ -85,6 +85,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Arrays;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
+import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
