@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">My App Name</string>
     <string name="error_message">Controlla la connessione internet</string>
@@ -6,11 +7,11 @@
     <string name="notification_error_ssl_cert_invalid">Errore SSL! Necessario permesso</string>
     <string name="external_link">Link esterno</string>
     <string name="open_in_browser">Aprire il link nel browser?</string>
-    <string name="open_in_external_app">Aprire il link usando un'applicazione esterna?</string>
+    <string name="open_in_external_app">Aprire il link usando un&apos;applicazione esterna?</string>
     <string name="download_description">Download del file in corso…</string>
     <string name="download_started">Download iniziato…</string>
     <string name="download_failed">Impossibile avviare il download.</string>
     <string name="push_distributor_required_title">App di notifica richiesta</string>
-    <string name="push_distributor_required_message">È necessaria un’app distributrice compatibile (ad esempio gCompat UP) per ricevere le notifiche push. Installane una e riprova.</string>
+    <string name="push_distributor_required_message">È necessaria un&apos;app distributrice compatibile (ad esempio gCompat UP) per ricevere le notifiche push. Installane una e riprova.</string>
     <string name="learn_more">Scopri di più</string>
 </resources>

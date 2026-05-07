@@ -218,6 +218,11 @@ apk() {
     rm -f ${BUILD_DIR}/app/build/outputs/apk/release/app-release.apk
 
     info "Building APK..."
+    cp gradlew "${BUILD_DIR}"
+    cp -r gradle "${BUILD_DIR}"
+    cp gradle.properties "${BUILD_DIR}"
+    cp settings.gradle "${BUILD_DIR}"
+    cd "${BUILD_DIR}"
     try "./gradlew assembleRelease --no-daemon --quiet"
 
     if [ -f "${BUILD_DIR}/app/build/outputs/apk/release/app-release.apk" ]; then
