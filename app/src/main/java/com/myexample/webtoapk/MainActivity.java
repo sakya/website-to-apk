@@ -73,6 +73,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import androidx.annotation.NonNull;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import android.graphics.Color;
@@ -439,7 +440,18 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         };
-        LocalBroadcastManager.getInstance(this).registerReceiver(mediaActionReceiver, new IntentFilter(MediaPlaybackService.BROADCAST_MEDIA_ACTION));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(
+                mediaActionReceiver,
+                new IntentFilter(MediaPlaybackService.BROADCAST_MEDIA_ACTION),
+                RECEIVER_NOT_EXPORTED
+            );
+        } else {
+            registerReceiver(
+                mediaActionReceiver,
+                new IntentFilter(MediaPlaybackService.BROADCAST_MEDIA_ACTION)
+            );
+        }
     }
 
     private void registerForUnifiedPush(final String vapidPublicKey) {
@@ -498,7 +510,10 @@ public class MainActivity extends AppCompatActivity {
         if (unifiedPushEndpointReceiver != null) {
             unregisterReceiver(unifiedPushEndpointReceiver);
         }
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(mediaActionReceiver);
+        try {
+            unregisterReceiver(mediaActionReceiver);
+        } catch (IllegalArgumentException ignored) {
+        }
         Intent intent = new Intent(this, MediaPlaybackService.class);
         stopService(intent);
     }
@@ -715,33 +730,51 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onHideCustomView() {
-            ((FrameLayout)getWindow().getDecorView()).removeView(mCustomView);
-            mCustomView = null;
-            getWindow().getDecorView().setSystemUiVisibility(mOriginalSystemUiVisibility);
+
+            FrameLayout decor = (FrameLayout) getWindow().getDecorView();
+            if (mCustomView != null) {
+                decor.removeView(mCustomView);
+                mCustomView = null;
+            }
+
+            if (mCustomViewCallback != null) {
+                mCustomViewCallback.onCustomViewHidden();
+                mCustomViewCallback = null;
+            }
+
             setRequestedOrientation(mOriginalOrientation);
-            mCustomViewCallback.onCustomViewHidden();
-            mCustomViewCallback = null;
+            WindowCompat.setDecorFitsSystemWindows(getWindow(), true);
+            WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+            controller.show(WindowInsetsCompat.Type.systemBars());
         }
 
         @Override
         public void onShowCustomView(View view, WebChromeClient.CustomViewCallback callback) {
+
             if (mCustomView != null) {
                 onHideCustomView();
                 return;
             }
+
             mCustomView = view;
-            mOriginalSystemUiVisibility = getWindow().getDecorView().getSystemUiVisibility();
-            mOriginalOrientation = getRequestedOrientation();
             mCustomViewCallback = callback;
-            ((FrameLayout)getWindow().getDecorView()).addView(mCustomView,
-                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT));
-            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE |
-                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
-                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
-                    View.SYSTEM_UI_FLAG_FULLSCREEN |
-                    View.SYSTEM_UI_FLAG_IMMERSIVE);
+            mOriginalOrientation = getRequestedOrientation();
+
+            FrameLayout decor = (FrameLayout) getWindow().getDecorView();
+            decor.addView(mCustomView, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+            ));
+
+            WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+            WindowInsetsControllerCompat controller =
+                    WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+
+            controller.hide(WindowInsetsCompat.Type.systemBars());
+            controller.setSystemBarsBehavior(
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            );
         }
 
         @Override

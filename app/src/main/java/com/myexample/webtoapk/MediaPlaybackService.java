@@ -24,7 +24,6 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.core.app.NotificationCompat.Action;
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.media.app.NotificationCompat.MediaStyle;
 
 import java.io.InputStream;
@@ -77,9 +76,6 @@ public class MediaPlaybackService extends Service {
         super.onCreate();
 
         mediaSession = new MediaSessionCompat(this, "WebToApkMediaSession");
-        mediaSession.setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS |
-                              MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS);
-
         // Set initial state. It must be something other than STATE_NONE.
         PlaybackStateCompat initialState = new PlaybackStateCompat.Builder()
                 .setActions(0) // No actions available initially
@@ -120,7 +116,7 @@ public class MediaPlaybackService extends Service {
         IntentFilter intentFilter = new IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY);
         registerReceiver(becomingNoisyReceiver, intentFilter);
     }
-    
+
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -272,7 +268,11 @@ public class MediaPlaybackService extends Service {
         } else {
             // Stopped or None, we can stop the foreground service.
             // false = do not remove the notification. It will be removed by swiping.
-            stopForeground(false);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_DETACH);
+            } else {
+                stopForeground(false);
+            }
             NotificationManagerCompat.from(this).cancel(NOTIFICATION_ID);
             // If the state is stopped, the service might no longer be needed.
             if (state == PlaybackStateCompat.STATE_STOPPED) {
@@ -284,7 +284,7 @@ public class MediaPlaybackService extends Service {
     private void setMediaActionHandlers(String[] actions) {
         PlaybackStateCompat currentState = mediaSession.getController().getPlaybackState();
          if (currentState == null) return;
-        
+
         long supportedActions = 0;
         if (actions != null) {
             for (String action : actions) {
@@ -411,7 +411,7 @@ public class MediaPlaybackService extends Service {
             NotificationManagerCompat.from(this).cancel(NOTIFICATION_ID);
         }
     }
-    
+
     private PendingIntent createActionIntent(String action) {
         Intent intent = new Intent(this, MediaPlaybackService.class);
         intent.setAction(action);
@@ -419,14 +419,15 @@ public class MediaPlaybackService extends Service {
         int requestCode = action.hashCode();
         return PendingIntent.getService(this, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
-    
+
     // --- Communication back to WebView ---
     private void sendActionToWebView(String action) {
         Intent intent = new Intent(BROADCAST_MEDIA_ACTION);
         intent.putExtra(EXTRA_MEDIA_ACTION, action);
-        LocalBroadcastManager.getInstance(this).sendBroadcast(intent);
+        intent.setPackage(getPackageName());
+        sendBroadcast(intent);
     }
-    
+
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -434,7 +435,7 @@ public class MediaPlaybackService extends Service {
         executor.shutdown();
         unregisterReceiver(becomingNoisyReceiver);
     }
-    
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
