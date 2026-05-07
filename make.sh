@@ -223,7 +223,8 @@ apk() {
     cp gradle.properties "${BUILD_DIR}"
     cp settings.gradle "${BUILD_DIR}"
     cd "${BUILD_DIR}"
-    try "./gradlew assembleRelease --no-daemon --quiet"
+    ./gradlew assembleRelease --no-daemon
+    cd "$OLDPWD"
 
     if [ -f "${BUILD_DIR}/app/build/outputs/apk/release/app-release.apk" ]; then
         log "APK successfully built and signed"
