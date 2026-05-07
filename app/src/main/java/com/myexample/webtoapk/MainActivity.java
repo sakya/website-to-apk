@@ -540,25 +540,12 @@ public class MainActivity extends AppCompatActivity {
         webview.invalidate();
     }
 
-    // TODO idk what do with this. rly need?
-    // @Override
-    // protected void onPause() {
-    //     super.onPause();
-    //     Log.d("WebToApk", "onPause");
-    //     if (webview != null) {
-    //         Log.d("WebToApk", "onPause 2");
-    //         webview.onPause();
-    //     }
-    // }
-    // @Override
-    // protected void onResume() {
-    //     super.onResume();
-    //     Log.d("WebToApk", "onResume");
-    //     if (webview != null) {
-    //         Log.d("WebToApk", "onResume 2");
-    //         webview.onResume();
-    //     }
-    // }
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        unregisterReceiver(mediaActionReceiver);
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
