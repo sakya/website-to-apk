@@ -756,7 +756,21 @@ public class MainActivity extends AppCompatActivity {
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("*/*");
 
-            // Поддержка множественного выбора
+            String[] acceptTypes = fileChooserParams.getAcceptTypes();
+            List<String> mimeList = new ArrayList<>();
+            if (acceptTypes != null) {
+                for (String t : acceptTypes) {
+                    if (t == null) continue;
+                    if (t.startsWith(".")) {
+                        continue;
+                    }
+                    mimeList.add(t);
+                }
+            }
+            if (!mimeList.isEmpty()) {
+                intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeList.toArray(new String[0]));
+            }
+
             if (fileChooserParams.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) {
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
             }
@@ -936,7 +950,7 @@ public class MainActivity extends AppCompatActivity {
                         new AlertDialog.Builder(view.getContext())
                             .setTitle(R.string.external_link)
                             .setMessage(R.string.open_in_external_app)
-                            .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                            .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                                 @Override
                                 public void onClick(DialogInterface dialog, int which) {
                                     try {
@@ -948,7 +962,7 @@ public class MainActivity extends AppCompatActivity {
                                     }
                                 }
                             })
-                            .setNegativeButton(android.R.string.no, null)
+                            .setNegativeButton(android.R.string.cancel, null)
                             .show();
                     } else {
                         // Open directly without confirmation
@@ -1002,7 +1016,7 @@ public class MainActivity extends AppCompatActivity {
                     new AlertDialog.Builder(view.getContext())
                         .setTitle(R.string.external_link)
                         .setMessage(R.string.open_in_browser)
-                        .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                        .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 Log.d("WebToApk", "\033[1;34mExternal link:\033[0m '" + url);
@@ -1010,7 +1024,7 @@ public class MainActivity extends AppCompatActivity {
                                 view.getContext().startActivity(intent);
                             }
                         })
-                        .setNegativeButton(android.R.string.no, null)
+                        .setNegativeButton(android.R.string.cancel, null)
                         .show();
                     return true;
                 } else {
