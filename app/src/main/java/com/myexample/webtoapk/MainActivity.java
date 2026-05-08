@@ -150,17 +150,6 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        if (forceLocale.length() > 0) {
-          String[] parts = forceLocale.split("-");
-          if (parts.length == 2) {
-            Locale locale = new Locale(parts[0], parts[1]);
-            Locale.setDefault(locale);
-
-            Configuration config = new Configuration();
-            config.setLocale(locale);
-          }
-        }
-
         if (forceDarkTheme) {
             AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
         }
@@ -269,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
           cookieManager.flush();
         }
 
-        // Image upload support
+        // File upload support
         fileChooserLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -452,6 +441,27 @@ public class MainActivity extends AppCompatActivity {
                 new IntentFilter(MediaPlaybackService.BROADCAST_MEDIA_ACTION)
             );
         }
+    }
+
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        if (forceLocale != null && !forceLocale.isEmpty()) {
+            String[] parts = forceLocale.split("-");
+            if (parts.length == 2) {
+                Locale locale = new Locale(parts[0], parts[1]);
+                Locale.setDefault(locale);
+
+                Configuration config = newBase.getResources().getConfiguration();
+                config = new Configuration(config);
+                config.setLocale(locale);
+
+                Context localizedContext = newBase.createConfigurationContext(config);
+                super.attachBaseContext(localizedContext);
+                return;
+            }
+        }
+
+        super.attachBaseContext(newBase);
     }
 
     private void registerForUnifiedPush(final String vapidPublicKey) {

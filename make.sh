@@ -222,6 +222,7 @@ apk() {
     cp -r gradle "${BUILD_DIR}"
     cp gradle.properties "${BUILD_DIR}"
     cp settings.gradle "${BUILD_DIR}"
+    cp proguard-rules.pro "${BUILD_DIR}/app"
     cd "${BUILD_DIR}"
     ./gradlew assembleRelease --no-daemon
     cd "$OLDPWD"
