@@ -539,15 +539,27 @@ public class MainActivity extends AppCompatActivity {
     protected void onPause() {
         super.onPause();
 
-        CookieManager.getInstance().flush();
+        try {
+            if (webview != null) {
+                webview.onPause();
+                webview.pauseTimers();
+            }
+            CookieManager.getInstance().flush();
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        webview.onResume();
-        webview.resumeTimers();
-        webview.invalidate();
+        try {
+            if (webview != null) {
+                webview.onResume();
+                webview.resumeTimers();
+                webview.invalidate();
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     @Override
