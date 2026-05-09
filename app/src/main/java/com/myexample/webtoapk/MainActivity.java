@@ -1,8 +1,10 @@
 package com.myexample.webtoapk;
 
 import android.content.DialogInterface;
+import android.util.TypedValue;
 import android.net.http.SslError;
 import androidx.appcompat.app.AlertDialog;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import android.os.Bundle;
@@ -215,8 +217,9 @@ public class MainActivity extends AppCompatActivity {
         webview.setWebContentsDebuggingEnabled(DebugWebView);
 
         swipe = findViewById(R.id.swipeRefresh);
-        swipe.setProgressBackgroundColorSchemeColor(ContextCompat.getColor(this, R.color.windowBackgroundColor));
-        swipe.setColorSchemeColors(ContextCompat.getColor(this, R.color.textColorPrimary));
+        swipe.setProgressBackgroundColorSchemeColor(getThemeColor(this, com.google.android.material.R.attr.colorSurface));
+        swipe.setColorSchemeColors(getThemeColor(this, com.google.android.material.R.attr.colorPrimary));
+
         swipe.setOnRefreshListener(() -> webview.reload());
         swipe.setEnabled(enablePullToRefresh);
         if (enablePullToRefresh) {
@@ -295,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
 
                 String fileName = URLUtil.guessFileName(url, contentDisposition, mimetype);
 
-                new AlertDialog.Builder(MainActivity.this)
+                new MaterialAlertDialogBuilder(MainActivity.this)
                     .setTitle(R.string.download_confirm)
                     .setMessage(fileName)
                     .setPositiveButton(R.string.download, (dialog, which) -> {
@@ -496,7 +499,7 @@ public class MainActivity extends AppCompatActivity {
                     // We must run UI and WebView operations on the main thread
                     new Handler(Looper.getMainLooper()).post(() -> {
                         // Show an informative dialog to the user
-                        new AlertDialog.Builder(MainActivity.this)
+                        new MaterialAlertDialogBuilder(MainActivity.this)
                             .setTitle(R.string.push_distributor_required_title)
                             .setMessage(R.string.push_distributor_required_message)
                             .setPositiveButton(R.string.learn_more, (dialog, which) -> {
@@ -622,6 +625,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private static int getThemeColor(Context context, int attr) {
+        TypedValue typedValue = new TypedValue();
+
+        context.getTheme().resolveAttribute(
+                attr,
+                typedValue,
+                true
+        );
+
+        return typedValue.data;
+    }
 
     /* This allows:
         Remove "Confirm URL" title from js log/alert/dialog/confirm
@@ -659,7 +673,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean onJsAlert(WebView view, String url, String message, final android.webkit.JsResult result) {
-            new AlertDialog.Builder(MainActivity.this)
+            new MaterialAlertDialogBuilder(MainActivity.this)
                 .setMessage(message)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
@@ -675,7 +689,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean onJsConfirm(WebView view, String url, String message, final JsResult result) {
-            new AlertDialog.Builder(MainActivity.this)
+            new MaterialAlertDialogBuilder(MainActivity.this)
                 .setMessage(message)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
                     @Override
@@ -700,7 +714,7 @@ public class MainActivity extends AppCompatActivity {
             final EditText input = new EditText(MainActivity.this);
             input.setText(defaultValue);
 
-            new AlertDialog.Builder(MainActivity.this)
+            new MaterialAlertDialogBuilder(MainActivity.this)
                 .setMessage(message)
                 .setView(input)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
@@ -909,7 +923,7 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            final AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+            final MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(MainActivity.this);
             builder.setMessage(R.string.notification_error_ssl_cert_invalid);
 
             builder.setPositiveButton("continue", new DialogInterface.OnClickListener() {
@@ -971,7 +985,7 @@ public class MainActivity extends AppCompatActivity {
             final EditText usernameInput = dialogView.findViewById(R.id.username);
             final EditText passwordInput = dialogView.findViewById(R.id.password);
 
-            new AlertDialog.Builder(MainActivity.this)
+            new MaterialAlertDialogBuilder(MainActivity.this)
                 .setTitle("Authentication Required")
                 .setView(dialogView)
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -1002,7 +1016,7 @@ public class MainActivity extends AppCompatActivity {
                 if (allowOpenMobileApp) {
                     if (confirmOpenExternalApp) {
                         // Show confirmation dialog before opening external app
-                        new AlertDialog.Builder(view.getContext())
+                        new MaterialAlertDialogBuilder(view.getContext())
                             .setTitle(R.string.external_link)
                             .setMessage(R.string.open_in_external_app)
                             .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
@@ -1068,7 +1082,7 @@ public class MainActivity extends AppCompatActivity {
             }
             if (openExternalLinksInBrowser) {
                 if (confirmOpenInBrowser) {
-                    new AlertDialog.Builder(view.getContext())
+                    new MaterialAlertDialogBuilder(view.getContext())
                         .setTitle(R.string.external_link)
                         .setMessage(R.string.open_in_browser)
                         .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
@@ -1184,7 +1198,6 @@ public class MainActivity extends AppCompatActivity {
             startActivity(getIntent());
             return true;
         }
-
     }
 
     boolean doubleBackToExitPressedOnce = false;
@@ -1450,5 +1463,4 @@ public class MainActivity extends AppCompatActivity {
             });
         }
     }
-
 }

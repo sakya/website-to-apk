@@ -16,4 +16,6 @@
     <string name="download_confirm">Download file?</string>
     <string name="download">Download</string>
     <string name="cancel">Cancel</string>
+    <string name="username">Username</string>
+    <string name="password">Password</string>
 </resources>
