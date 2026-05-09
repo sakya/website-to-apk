@@ -292,34 +292,42 @@ public class MainActivity extends AppCompatActivity {
         webview.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
-                DownloadManager downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
 
-                // Create a request for the download
-                DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-                request.setMimeType(mimetype);
+                String fileName = URLUtil.guessFileName(url, contentDisposition, mimetype);
 
-                // Set cookies for the download request, it's important for authorized downloads
-                String cookies = CookieManager.getInstance().getCookie(url);
-                request.addRequestHeader("cookie", cookies);
-                request.addRequestHeader("User-Agent", userAgent);
+                new AlertDialog.Builder(MainActivity.this)
+                    .setTitle(R.string.download_confirm)
+                    .setMessage(fileName)
+                    .setPositiveButton(R.string.download, (dialog, which) -> {
 
-                // Set download description and title using string resources
-                request.setDescription(getString(R.string.download_description)); // Use string resource
-                request.setTitle(URLUtil.guessFileName(url, contentDisposition, mimetype));
+                        DownloadManager downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+                        request.setMimeType(mimetype);
 
-                // Show notification during and after download
-                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                        String cookies = CookieManager.getInstance().getCookie(url);
+                        request.addRequestHeader("cookie", cookies);
+                        request.addRequestHeader("User-Agent", userAgent);
 
-                // Set the destination directory for the downloaded file
-                request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, URLUtil.guessFileName(url, contentDisposition, mimetype));
+                        request.setDescription(getString(R.string.download_description));
+                        request.setTitle(fileName);
+                        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
 
-                try {
-                    downloadManager.enqueue(request);
-                    Toast.makeText(getApplicationContext(), R.string.download_started, Toast.LENGTH_LONG).show();
-                } catch (Exception e) {
-                    Toast.makeText(getApplicationContext(), R.string.download_failed, Toast.LENGTH_LONG).show();
-                    Log.e("WebToApk", "Failed to start download", e);
-                }
+                        try {
+                            downloadManager.enqueue(request);
+                            Toast.makeText(getApplicationContext(),
+                                    R.string.download_started,
+                                    Toast.LENGTH_LONG).show();
+                        } catch (Exception e) {
+                            Toast.makeText(getApplicationContext(),
+                                    R.string.download_failed,
+                                    Toast.LENGTH_LONG).show();
+                            Log.e("WebToApk", "Failed to start download", e);
+                        }
+                    })
+                    .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
+                    .setCancelable(true)
+                    .show();
             }
         });
 
