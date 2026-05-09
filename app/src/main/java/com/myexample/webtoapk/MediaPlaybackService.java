@@ -268,11 +268,7 @@ public class MediaPlaybackService extends Service {
         } else {
             // Stopped or None, we can stop the foreground service.
             // false = do not remove the notification. It will be removed by swiping.
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                stopForeground(STOP_FOREGROUND_DETACH);
-            } else {
-                stopForeground(false);
-            }
+            stopForeground(STOP_FOREGROUND_DETACH);
             NotificationManagerCompat.from(this).cancel(NOTIFICATION_ID);
             // If the state is stopped, the service might no longer be needed.
             if (state == PlaybackStateCompat.STATE_STOPPED) {

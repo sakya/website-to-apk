@@ -164,7 +164,7 @@ Additionally, once the inset variables are applied, the app dispatches a custom 
 ## Technical Details
 
 - Target Android API: 34 (Android 14)
-- Minimum Android API: 24 (Android 7.0)
+- Minimum Android API: 29 (Android 10)
 - Build tools version: 34.0.0
 - Gradle version: 8.13
 - Required Java version: 17

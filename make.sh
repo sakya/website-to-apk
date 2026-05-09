@@ -215,11 +215,12 @@ apk() {
         error "Keystore file not found. Run './make.sh keygen' first"
     fi
 
-    rm -f ${BUILD_DIR}/app/build/outputs/apk/release/app-release.apk
+    rm -f "${BUILD_DIR}/app/build/outputs/apk/release/app-release.apk"
 
     info "Building APK..."
     cp gradlew "${BUILD_DIR}"
     cp -r gradle "${BUILD_DIR}"
+    cp build.gradle "${BUILD_DIR}"
     cp gradle.properties "${BUILD_DIR}"
     cp settings.gradle "${BUILD_DIR}"
     cp proguard-rules.pro "${BUILD_DIR}/app"
@@ -259,7 +260,7 @@ test() {
 }
 
 keygen() {
-    if [ -f "${BUILD_DIR}/app/my-release-key.jks" ]; then
+    if [ -f "app/my-release-key.jks" ]; then
         warn "Keystore already exists"
         read -p "Do you want to replace it? (y/N) " -n 1 -r
         echo
@@ -267,11 +268,11 @@ keygen() {
             info "Cancelled"
             return 1
         fi
-        rm ${BUILD_DIR}/app/my-release-key.jks
+        rm app/my-release-key.jks
     fi
 
     info "Generating keystore..."
-    try "keytool -genkey -v -keystore ${BUILD_DIR}/app/my-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my -storepass '123456' -keypass '123456' -dname '$INFO'"
+    try "keytool -genkey -v -keystore app/my-release-key.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my -storepass '123456' -keypass '123456' -dname '$INFO'"
     log "Keystore generated successfully"
 }
 
@@ -806,7 +807,7 @@ ORIGINAL_PWD="$PWD"
 try cd "$(dirname "$0")"
 
 export ANDROID_HOME=$PWD/cmdline-tools/
-appname=$(grep -Po '(?<=applicationId "com\.)[^.]*' app/build.gradle)
+appname=$(grep -Po '(?<=applicationId = "com\.)[^.]*' app/build.gradle)
 
 # Set Gradle's cache directory to be local to the project
 export GRADLE_USER_HOME=$PWD/.gradle-cache
@@ -862,4 +863,4 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-eval $@
+"$@"

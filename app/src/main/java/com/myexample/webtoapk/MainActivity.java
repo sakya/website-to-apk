@@ -196,6 +196,7 @@ public class MainActivity extends AppCompatActivity {
         webview = findViewById(R.id.webView);
         webview.setAlpha(0f);
         spinner = findViewById(R.id.progressBar1);
+        webview.setOverScrollMode(View.OVER_SCROLL_NEVER);
         webview.setWebViewClient(new CustomWebViewClient());
         webview.setWebChromeClient(new CustomWebChrome());
         webAppInterface = new WebAppInterface(this);
@@ -794,9 +795,11 @@ public class MainActivity extends AppCompatActivity {
             }
             mFilePathCallback = filePathCallback;
 
-            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.setType("*/*");
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
 
             String[] acceptTypes = fileChooserParams.getAcceptTypes();
             List<String> mimeList = new ArrayList<>();
@@ -806,7 +809,9 @@ public class MainActivity extends AppCompatActivity {
                     if (t.startsWith(".")) {
                         continue;
                     }
-                    mimeList.add(t);
+                    if (t.contains("/")) {
+                        mimeList.add(t);
+                    }
                 }
             }
             if (!mimeList.isEmpty()) {
