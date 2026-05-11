@@ -460,7 +460,6 @@ set_network_security_config() {
 set_icon() {
     local icon_path="$@"
     local default_icon="$PWD/${BUILD_DIR}/app/example.png"
-    local dest_file="${BUILD_DIR}/app/src/main/res/mipmap/ic_launcher.png"
 
     # If no icon provided, use default
     if [ -z "$icon_path" ]; then
@@ -482,19 +481,29 @@ set_icon() {
     fi
 
     # Create destination directory if needed
-    mkdir -p "$(dirname "$dest_file")"
-
-    # Check if icon needs to be updated
-    if [ -f "$dest_file" ] && cmp -s "$icon_path" "$dest_file"; then
-        return 0
-    fi
+    mkdir -p "${BUILD_DIR}/app/src/main/res"
 
     if [ -z "$@" ]; then
         warn "Using example.png for icon"
     fi
 
-    # Copy icon
-    try "cp \"$icon_path\" \"$dest_file\""
+    magick "$icon_path" -resize 512x512 "${BUILD_DIR}/app/src/main/res/playstore-icon.png"
+
+    magick "$icon_path" -resize 72x72 "${BUILD_DIR}/app/src/main/res/mipmap-hdpi/ic_launcher.png"
+    magick "$icon_path" -resize 72x72 -background none -gravity center -extent 162x162 "${BUILD_DIR}/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png"
+
+    magick "$icon_path" -resize 48x48 "${BUILD_DIR}/app/src/main/res/mipmap-mdpi/ic_launcher.png"
+    magick "$icon_path" -resize 48x48 -background none -gravity center -extent 108x108 "${BUILD_DIR}/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png"
+
+    magick "$icon_path" -resize 96x96 "${BUILD_DIR}/app/src/main/res/mipmap-xhdpi/ic_launcher.png"
+    magick "$icon_path" -resize 96x96 -background none -gravity center -extent  216x216 "${BUILD_DIR}/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png"
+
+    magick "$icon_path" -resize 144x144 "${BUILD_DIR}/app/src/main/res/mipmap-xxhdpi/ic_launcher.png"
+    magick "$icon_path" -resize 144x144 -background none -gravity center -extent 324x324 "${BUILD_DIR}/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png"
+
+    magick "$icon_path" -resize 192x192 "${BUILD_DIR}/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png"
+    magick "$icon_path" -resize 192x192 -background none -gravity center -extent 432x432 "${BUILD_DIR}/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png"
+
     log "Icon updated successfully"
 }
 
