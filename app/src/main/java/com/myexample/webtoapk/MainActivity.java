@@ -441,18 +441,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         };
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(
-                mediaActionReceiver,
-                new IntentFilter(MediaPlaybackService.BROADCAST_MEDIA_ACTION),
-                RECEIVER_NOT_EXPORTED
-            );
-        } else {
-            registerReceiver(
-                mediaActionReceiver,
-                new IntentFilter(MediaPlaybackService.BROADCAST_MEDIA_ACTION)
-            );
-        }
     }
 
     @Override
@@ -529,10 +517,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (unifiedPushEndpointReceiver != null) {
-            unregisterReceiver(unifiedPushEndpointReceiver);
-        }
         try {
+            if (unifiedPushEndpointReceiver != null) {
+                unregisterReceiver(unifiedPushEndpointReceiver);
+            }
             unregisterReceiver(mediaActionReceiver);
         } catch (IllegalArgumentException ignored) {
         }
@@ -545,6 +533,21 @@ public class MainActivity extends AppCompatActivity {
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         webview.saveState(outState);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        if (mediaActionReceiver == null) return;
+
+        IntentFilter filter = new IntentFilter(MediaPlaybackService.BROADCAST_MEDIA_ACTION);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(mediaActionReceiver, filter, RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(mediaActionReceiver, filter);
+        }
     }
 
     @Override
@@ -578,7 +581,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
 
-        unregisterReceiver(mediaActionReceiver);
+        if (mediaActionReceiver != null) {
+            try {
+                unregisterReceiver(mediaActionReceiver);
+            } catch (IllegalArgumentException ignored) {}
+        }
     }
 
     @Override
