@@ -1137,13 +1137,17 @@ public class MainActivity extends AppCompatActivity {
         // Animation on app open
         @Override
         public void onPageFinished(WebView webview, String url) {
-            // Без флага errorOccurred у нас будет видно ошибку webview пока идёт анимация после tryAgain
             if (!errorOccurred) {
                 Log.d("WebToApk","Current page: " + url);
                 spinner.setVisibility(View.GONE);
                 if (webview.getAlpha() == 0f) {
                     webview.animate().alpha(1f).setDuration(fadeInDuration).start();
                 }
+            }
+
+            if (url.equals(mainURL)) {
+                // Clear history when we navigate to the mainURL so that the back button closes the app
+                webview.clearHistory();
             }
             swipe.setRefreshing(false);
             super.onPageFinished(webview, url);
