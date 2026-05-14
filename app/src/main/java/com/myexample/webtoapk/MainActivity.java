@@ -89,6 +89,10 @@ import java.util.List;
 import java.util.Arrays;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import java.util.Locale;
+import androidx.biometric.BiometricManager;
+import androidx.biometric.BiometricPrompt;
+import androidx.core.content.ContextCompat;
+import java.util.concurrent.Executor;
 
 public class MainActivity extends AppCompatActivity {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
@@ -145,302 +149,316 @@ public class MainActivity extends AppCompatActivity {
     int fadeInDuration = 400;
     boolean DebugWebView = false;
 
+    boolean doubleBackToExitPressedOnce = false;
     boolean geolocationEnabled = false;
     boolean cameraEnabled = false;
     boolean microphoneEnabled = false;
     boolean enablePullToRefresh = true;
+    boolean biometricEnabled = false;
+
+    boolean appStarted = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        if (forceDarkTheme) {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-        }
-        if (edgeToEdge) {
-            WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-        }
+      if (forceDarkTheme) {
+          AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
+      }
+      if (edgeToEdge) {
+          WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+      }
+      super.onCreate(savedInstanceState);
 
-        super.onCreate(savedInstanceState);
+      // File upload support
+      fileChooserLauncher = registerForActivityResult(
+          new ActivityResultContracts.StartActivityForResult(),
+          result -> {
+              Uri[] results = null;
 
-        if (edgeToEdge) {
-            getWindow().setStatusBarColor(Color.TRANSPARENT);
-            getWindow().setNavigationBarColor(Color.TRANSPARENT);
-        }
+              if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                  Intent intentData = result.getData(); // Переименовали с data на intentData
 
-        // Create the NotificationChannel, but only on API 26+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, NOTIFICATION_CHANNEL_NAME, importance);
-            channel.setDescription("Channel for web app notifications");
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
-            Log.d("WebToApk", "Notification channel created.");
-        }
+                  // Обработка множественного выбора
+                  if (intentData.getClipData() != null) {
+                      int count = intentData.getClipData().getItemCount();
+                      results = new Uri[count];
+                      for (int i = 0; i < count; i++) {
+                          results[i] = intentData.getClipData().getItemAt(i).getUri();
+                      }
+                  } else if (intentData.getData() != null) {
+                      // Один файл
+                      results = new Uri[]{intentData.getData()};
+                  }
+              }
 
-        if (forceLandscapeMode) {
-            setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        }
+              if (mFilePathCallback != null) {
+                  mFilePathCallback.onReceiveValue(results);
+                  mFilePathCallback = null;
+              }
+          }
+      );
 
-        setContentView(R.layout.activity_main);
-        mainLayout = findViewById(android.R.id.content);
-        parentLayout = (ViewGroup) mainLayout.getParent();
-        userScriptManager = new UserScriptManager(this, mainURL);
+      if (biometricEnabled) {
+        biometricAuth(savedInstanceState);
+      } else {
+        startApp(savedInstanceState);
+      }
+    }
 
-        // Handle intent
-        Intent intent = getIntent();
-        String action = intent.getAction();
-        Uri data = intent.getData();
-        Log.d("WebToApk", "Action: " + action);
-        Log.d("WebToApk", "Data: " + data);
-        if (Intent.ACTION_VIEW.equals(action) && data != null) {
-            mainURL = data.toString();
-        }
+    private void startApp(Bundle savedInstanceState) {
+      if (appStarted) return;
+      appStarted = true;
 
-        webview = findViewById(R.id.webView);
-        webview.setAlpha(0f);
-        spinner = findViewById(R.id.progressBar1);
-        webview.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        webview.setWebViewClient(new CustomWebViewClient());
-        webview.setWebChromeClient(new CustomWebChrome());
-        webAppInterface = new WebAppInterface(this);
-        webview.addJavascriptInterface(webAppInterface, "WebToApk");
+      if (edgeToEdge) {
+          getWindow().setStatusBarColor(Color.TRANSPARENT);
+          getWindow().setNavigationBarColor(Color.TRANSPARENT);
+      }
 
-        WebSettings webSettings = webview.getSettings();
-        webSettings.setJavaScriptEnabled(JSEnabled);
-        webSettings.setJavaScriptCanOpenWindowsAutomatically(JSCanOpenWindowsAutomatically);
-        webSettings.setGeolocationEnabled(geolocationEnabled);
-        webSettings.setDomStorageEnabled(DomStorageEnabled);
-        webSettings.setDatabaseEnabled(DatabaseEnabled);
-        webSettings.setMediaPlaybackRequiresUserGesture(MediaPlaybackRequiresUserGesture);
-        webSettings.setAllowFileAccess(AllowFileAccess);
-        webSettings.setUseWideViewPort(true);
-        webSettings.setLoadWithOverviewMode(true);
-        webview.setWebContentsDebuggingEnabled(DebugWebView);
+      // Create the NotificationChannel, but only on API 26+
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+          int importance = NotificationManager.IMPORTANCE_DEFAULT;
+          NotificationChannel channel = new NotificationChannel(NOTIFICATION_CHANNEL_ID, NOTIFICATION_CHANNEL_NAME, importance);
+          channel.setDescription("Channel for web app notifications");
+          NotificationManager notificationManager = getSystemService(NotificationManager.class);
+          notificationManager.createNotificationChannel(channel);
+          Log.d("WebToApk", "Notification channel created.");
+      }
 
-        swipe = findViewById(R.id.swipeRefresh);
-        swipe.setProgressBackgroundColorSchemeColor(getThemeColor(this, com.google.android.material.R.attr.colorSurface));
-        swipe.setColorSchemeColors(getThemeColor(this, com.google.android.material.R.attr.colorPrimary));
+      if (forceLandscapeMode) {
+          setRequestedOrientation(android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+      }
 
-        swipe.setOnRefreshListener(() -> webview.reload());
-        swipe.setEnabled(enablePullToRefresh);
-        if (enablePullToRefresh) {
-          webview.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-            swipe.setEnabled(scrollY == 0);
-          });
-        }
+      setContentView(R.layout.activity_main);
+      mainLayout = findViewById(android.R.id.content);
+      parentLayout = (ViewGroup) mainLayout.getParent();
+      userScriptManager = new UserScriptManager(this, mainURL);
 
-        if (allowMixedContent) {
-            webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
-        }
+      // Handle intent
+      Intent intent = getIntent();
+      String action = intent.getAction();
+      Uri data = intent.getData();
+      Log.d("WebToApk", "Action: " + action);
+      Log.d("WebToApk", "Data: " + data);
+      if (Intent.ACTION_VIEW.equals(action) && data != null) {
+          mainURL = data.toString();
+      }
 
-        if (!userAgent.isEmpty()) {
-            webSettings.setUserAgentString(userAgent);
-        }
+      webview = findViewById(R.id.webView);
+      webview.setAlpha(0f);
+      spinner = findViewById(R.id.progressBar1);
+      webview.setOverScrollMode(View.OVER_SCROLL_NEVER);
+      webview.setWebViewClient(new CustomWebViewClient());
+      webview.setWebChromeClient(new CustomWebChrome());
+      webAppInterface = new WebAppInterface(this);
+      webview.addJavascriptInterface(webAppInterface, "WebToApk");
 
-        switch (cacheMode) {
-            case "aggressive":
-                // Offline-first: Use cache if content is there, otherwise load from network.
-                webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
-                break;
-            case "no_cache":
-                // Always load from the network, do not use the cache
-                webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
-                webview.clearCache(true);
-                break;
-            default:
-                // Uses cache based on server's "Cache-Control" headers
-                webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
-                break;
-        }
+      WebSettings webSettings = webview.getSettings();
+      webSettings.setJavaScriptEnabled(JSEnabled);
+      webSettings.setJavaScriptCanOpenWindowsAutomatically(JSCanOpenWindowsAutomatically);
+      webSettings.setGeolocationEnabled(geolocationEnabled);
+      webSettings.setDomStorageEnabled(DomStorageEnabled);
+      webSettings.setDatabaseEnabled(DatabaseEnabled);
+      webSettings.setMediaPlaybackRequiresUserGesture(MediaPlaybackRequiresUserGesture);
+      webSettings.setAllowFileAccess(AllowFileAccess);
+      webSettings.setUseWideViewPort(true);
+      webSettings.setLoadWithOverviewMode(true);
+      webview.setWebContentsDebuggingEnabled(DebugWebView);
 
-        webview.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
+      swipe = findViewById(R.id.swipeRefresh);
+      swipe.setProgressBackgroundColorSchemeColor(getThemeColor(this, com.google.android.material.R.attr.colorSurface));
+      swipe.setColorSchemeColors(getThemeColor(this, com.google.android.material.R.attr.colorPrimary));
 
-        CookieManager cookieManager = CookieManager.getInstance();
-        cookieManager.setAcceptCookie(true);
-        cookieManager.setAcceptThirdPartyCookies(webview, true);
-        if (cookies.length() > 0) {
-          cookieManager.setCookie(mainURL, cookies);
-          cookieManager.flush();
-        }
-
-        // File upload support
-        fileChooserLauncher = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                Uri[] results = null;
-
-                if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                    Intent intentData = result.getData(); // Переименовали с data на intentData
-
-                    // Обработка множественного выбора
-                    if (intentData.getClipData() != null) {
-                        int count = intentData.getClipData().getItemCount();
-                        results = new Uri[count];
-                        for (int i = 0; i < count; i++) {
-                            results[i] = intentData.getClipData().getItemAt(i).getUri();
-                        }
-                    } else if (intentData.getData() != null) {
-                        // Один файл
-                        results = new Uri[]{intentData.getData()};
-                    }
-                }
-
-                if (mFilePathCallback != null) {
-                    mFilePathCallback.onReceiveValue(results);
-                    mFilePathCallback = null;
-                }
-            }
-        );
-
-        // File downloading support
-        webview.setDownloadListener(new DownloadListener() {
-            @Override
-            public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
-
-                String fileName = URLUtil.guessFileName(url, contentDisposition, mimetype);
-
-                new MaterialAlertDialogBuilder(MainActivity.this)
-                    .setTitle(R.string.download_confirm)
-                    .setMessage(fileName)
-                    .setPositiveButton(R.string.download, (dialog, which) -> {
-
-                        DownloadManager downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-                        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-                        request.setMimeType(mimetype);
-
-                        String cookies = CookieManager.getInstance().getCookie(url);
-                        request.addRequestHeader("cookie", cookies);
-                        request.addRequestHeader("User-Agent", userAgent);
-
-                        request.setDescription(getString(R.string.download_description));
-                        request.setTitle(fileName);
-                        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
-
-                        try {
-                            downloadManager.enqueue(request);
-                            Toast.makeText(getApplicationContext(),
-                                    R.string.download_started,
-                                    Toast.LENGTH_LONG).show();
-                        } catch (Exception e) {
-                            Toast.makeText(getApplicationContext(),
-                                    R.string.download_failed,
-                                    Toast.LENGTH_LONG).show();
-                            Log.e("WebToApk", "Failed to start download", e);
-                        }
-                    })
-                    .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
-                    .setCancelable(true)
-                    .show();
-            }
+      swipe.setOnRefreshListener(() -> webview.reload());
+      swipe.setEnabled(enablePullToRefresh);
+      if (enablePullToRefresh) {
+        webview.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+          swipe.setEnabled(scrollY == 0);
         });
+      }
+
+      if (allowMixedContent) {
+          webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
+      }
+
+      if (!userAgent.isEmpty()) {
+          webSettings.setUserAgentString(userAgent);
+      }
+
+      switch (cacheMode) {
+          case "aggressive":
+              // Offline-first: Use cache if content is there, otherwise load from network.
+              webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+              break;
+          case "no_cache":
+              // Always load from the network, do not use the cache
+              webSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+              webview.clearCache(true);
+              break;
+          default:
+              // Uses cache based on server's "Cache-Control" headers
+              webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+              break;
+      }
+
+      webview.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
+
+      CookieManager cookieManager = CookieManager.getInstance();
+      cookieManager.setAcceptCookie(true);
+      cookieManager.setAcceptThirdPartyCookies(webview, true);
+      if (cookies.length() > 0) {
+        cookieManager.setCookie(mainURL, cookies);
+        cookieManager.flush();
+      }
+
+      // File downloading support
+      webview.setDownloadListener(new DownloadListener() {
+          @Override
+          public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
+
+              String fileName = URLUtil.guessFileName(url, contentDisposition, mimetype);
+
+              new MaterialAlertDialogBuilder(MainActivity.this)
+                  .setTitle(R.string.download_confirm)
+                  .setMessage(fileName)
+                  .setPositiveButton(R.string.download, (dialog, which) -> {
+
+                      DownloadManager downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                      DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+                      request.setMimeType(mimetype);
+
+                      String cookies = CookieManager.getInstance().getCookie(url);
+                      request.addRequestHeader("cookie", cookies);
+                      request.addRequestHeader("User-Agent", userAgent);
+
+                      request.setDescription(getString(R.string.download_description));
+                      request.setTitle(fileName);
+                      request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                      request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
+
+                      try {
+                          downloadManager.enqueue(request);
+                          Toast.makeText(getApplicationContext(),
+                                  R.string.download_started,
+                                  Toast.LENGTH_LONG).show();
+                      } catch (Exception e) {
+                          Toast.makeText(getApplicationContext(),
+                                  R.string.download_failed,
+                                  Toast.LENGTH_LONG).show();
+                          Log.e("WebToApk", "Failed to start download", e);
+                      }
+                  })
+                  .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
+                  .setCancelable(true)
+                  .show();
+          }
+      });
 
 
-        // Broadcast receiver to get the endpoint from the PushServiceImpl
-        unifiedPushEndpointReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                // Now we receive all parts of the subscription
-                String endpoint = intent.getStringExtra("endpoint");
-                String p256dh = intent.getStringExtra("p256dh");
-                String auth = intent.getStringExtra("auth");
+      // Broadcast receiver to get the endpoint from the PushServiceImpl
+      unifiedPushEndpointReceiver = new BroadcastReceiver() {
+          @Override
+          public void onReceive(Context context, Intent intent) {
+              // Now we receive all parts of the subscription
+              String endpoint = intent.getStringExtra("endpoint");
+              String p256dh = intent.getStringExtra("p256dh");
+              String auth = intent.getStringExtra("auth");
 
-                Log.d("WebToApk", "Received new UnifiedPush data. Endpoint: " + endpoint);
+              Log.d("WebToApk", "Received new UnifiedPush data. Endpoint: " + endpoint);
 
-                // Instead of a simple function call, we now create the full subscription JSON
-                // and pass it to a special function in our shim that will resolve the 'subscribe()' promise.
-                if (endpoint != null && p256dh != null && auth != null && webview != null) {
-                    try {
-                        JSONObject keys = new JSONObject();
-                        // Use the real keys received from the distributor
-                        keys.put("p256dh", p256dh);
-                        keys.put("auth", auth);
+              // Instead of a simple function call, we now create the full subscription JSON
+              // and pass it to a special function in our shim that will resolve the 'subscribe()' promise.
+              if (endpoint != null && p256dh != null && auth != null && webview != null) {
+                  try {
+                      JSONObject keys = new JSONObject();
+                      // Use the real keys received from the distributor
+                      keys.put("p256dh", p256dh);
+                      keys.put("auth", auth);
 
-                        JSONObject subscription = new JSONObject();
-                        subscription.put("endpoint", endpoint);
-                        subscription.put("expirationTime", JSONObject.NULL);
-                        subscription.put("keys", keys);
+                      JSONObject subscription = new JSONObject();
+                      subscription.put("endpoint", endpoint);
+                      subscription.put("expirationTime", JSONObject.NULL);
+                      subscription.put("keys", keys);
 
-                        String subscriptionJson = subscription.toString();
+                      String subscriptionJson = subscription.toString();
 
-                        webview.post(() -> {
-                            // This JS function is defined in our new shim
-                            String js = "if (typeof window.__shim_onNewEndpoint === 'function') { window.__shim_onNewEndpoint('" + subscriptionJson.replace("'", "\\'") + "'); }";
-                            webview.evaluateJavascript(js, null);
-                        });
+                      webview.post(() -> {
+                          // This JS function is defined in our new shim
+                          String js = "if (typeof window.__shim_onNewEndpoint === 'function') { window.__shim_onNewEndpoint('" + subscriptionJson.replace("'", "\\'") + "'); }";
+                          webview.evaluateJavascript(js, null);
+                      });
 
-                    } catch (JSONException e) {
-                         Log.e("WebToApk", "Failed to create subscription JSON for shim", e);
-                    }
-                }
-            }
-        };
-        // Register the receiver with compatibility for different Android versions
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(unifiedPushEndpointReceiver, new IntentFilter("com.myexample.webtoapk.NEW_ENDPOINT"), RECEIVER_NOT_EXPORTED);
-        } else {
-            registerReceiver(unifiedPushEndpointReceiver, new IntentFilter("com.myexample.webtoapk.NEW_ENDPOINT"));
-        }
+                  } catch (JSONException e) {
+                        Log.e("WebToApk", "Failed to create subscription JSON for shim", e);
+                  }
+              }
+          }
+      };
+      // Register the receiver with compatibility for different Android versions
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+          registerReceiver(unifiedPushEndpointReceiver, new IntentFilter("com.myexample.webtoapk.NEW_ENDPOINT"), RECEIVER_NOT_EXPORTED);
+      } else {
+          registerReceiver(unifiedPushEndpointReceiver, new IntentFilter("com.myexample.webtoapk.NEW_ENDPOINT"));
+      }
 
-        if (edgeToEdge) {
-            ViewCompat.setOnApplyWindowInsetsListener(mainLayout, (v, windowInsets) -> {
-                // Get the insets for system bars in hardware pixels.
-                Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+      if (edgeToEdge) {
+          ViewCompat.setOnApplyWindowInsetsListener(mainLayout, (v, windowInsets) -> {
+              // Get the insets for system bars in hardware pixels.
+              Insets insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
 
-                // Get the device's screen density factor.
-                float density = v.getResources().getDisplayMetrics().density;
+              // Get the device's screen density factor.
+              float density = v.getResources().getDisplayMetrics().density;
 
-                // Convert hardware pixels to density-independent CSS pixels.
-                float top = insets.top / density;
-                float bottom = insets.bottom / density;
-                float left = insets.left / density;
-                float right = insets.right / density;
+              // Convert hardware pixels to density-independent CSS pixels.
+              float top = insets.top / density;
+              float bottom = insets.bottom / density;
+              float left = insets.left / density;
+              float right = insets.right / density;
 
-                Log.d("WebToApk", String.format(java.util.Locale.US,
-                    "Insets (CSS px) -> T:%.2f, B:%.2f, L:%.2f, R:%.2f",
-                    top, bottom, left, right
-                ));
+              Log.d("WebToApk", String.format(java.util.Locale.US,
+                  "Insets (CSS px) -> T:%.2f, B:%.2f, L:%.2f, R:%.2f",
+                  top, bottom, left, right
+              ));
 
-                // Pass insets to WebView via CSS custom properties.
-                // These names are chosen to be close to the standard CSS env() variables.
-                // The web content can then use var(--safe-area-inset-top).
-                String js = String.format(java.util.Locale.US,
-                    "document.documentElement.style.setProperty('--safe-area-inset-top', '%.2fpx');" +
-                    "document.documentElement.style.setProperty('--safe-area-inset-bottom', '%.2fpx');" +
-                    "document.documentElement.style.setProperty('--safe-area-inset-left', '%.2fpx');" +
-                    "document.documentElement.style.setProperty('--safe-area-inset-right', '%.2fpx');" +
-                    "document.dispatchEvent(new CustomEvent('WebToApkInsetsApplied'));",
-                    top, bottom, left, right
-                );
-                webview.evaluateJavascript(js, null);
+              // Pass insets to WebView via CSS custom properties.
+              // These names are chosen to be close to the standard CSS env() variables.
+              // The web content can then use var(--safe-area-inset-top).
+              String js = String.format(java.util.Locale.US,
+                  "document.documentElement.style.setProperty('--safe-area-inset-top', '%.2fpx');" +
+                  "document.documentElement.style.setProperty('--safe-area-inset-bottom', '%.2fpx');" +
+                  "document.documentElement.style.setProperty('--safe-area-inset-left', '%.2fpx');" +
+                  "document.documentElement.style.setProperty('--safe-area-inset-right', '%.2fpx');" +
+                  "document.dispatchEvent(new CustomEvent('WebToApkInsetsApplied'));",
+                  top, bottom, left, right
+              );
+              webview.evaluateJavascript(js, null);
 
-                return WindowInsetsCompat.CONSUMED;
-            });
-        }
+              return WindowInsetsCompat.CONSUMED;
+          });
+      }
 
-        // TODO check https://stackoverflow.com/questions/18479519/how-to-save-restore-webview-state
-        boolean stateRestored = false;
-        if (savedInstanceState != null) {
-            // Restore the state of the WebView from the saved bundle.
-            stateRestored = webview.restoreState(savedInstanceState) != null;
-            if (stateRestored) Log.d("WebToApk", "Restored WebView state");
-        }
+      // TODO check https://stackoverflow.com/questions/18479519/how-to-save-restore-webview-state
+      boolean stateRestored = false;
+      if (savedInstanceState != null) {
+          // Restore the state of the WebView from the saved bundle.
+          stateRestored = webview.restoreState(savedInstanceState) != null;
+          if (stateRestored) Log.d("WebToApk", "Restored WebView state");
+      }
 
-        if (!stateRestored) {
-            // It's a fresh launch. Or broken old. Load the main URL.
-            webview.loadUrl(mainURL);
-        }
+      if (!stateRestored) {
+          // It's a fresh launch. Or broken old. Load the main URL.
+          webview.loadUrl(mainURL);
+      }
 
-        mediaActionReceiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context context, Intent intent) {
-                if (intent != null && MediaPlaybackService.BROADCAST_MEDIA_ACTION.equals(intent.getAction())) {
-                    String action = intent.getStringExtra(MediaPlaybackService.EXTRA_MEDIA_ACTION);
-                    if (action != null) {
-                        executeMediaActionInWebView(action);
-                    }
-                }
-            }
-        };
+      mediaActionReceiver = new BroadcastReceiver() {
+          @Override
+          public void onReceive(Context context, Intent intent) {
+              if (intent != null && MediaPlaybackService.BROADCAST_MEDIA_ACTION.equals(intent.getAction())) {
+                  String action = intent.getStringExtra(MediaPlaybackService.EXTRA_MEDIA_ACTION);
+                  if (action != null) {
+                      executeMediaActionInWebView(action);
+                  }
+              }
+          }
+      };
     }
 
     @Override
@@ -462,6 +480,51 @@ public class MainActivity extends AppCompatActivity {
         }
 
         super.attachBaseContext(newBase);
+    }
+
+    private void biometricAuth(Bundle savedInstanceState) {
+      BiometricManager biometricManager = BiometricManager.from(this);
+      int result = biometricManager.canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG);
+      if (result != BiometricManager.BIOMETRIC_SUCCESS) {
+          startApp(savedInstanceState);
+          return;
+      }
+
+      Executor executor = ContextCompat.getMainExecutor(this);
+
+      BiometricPrompt biometricPrompt = new BiometricPrompt(
+              this,
+              executor,
+              new BiometricPrompt.AuthenticationCallback() {
+
+                  @Override
+                  public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult result) {
+                      super.onAuthenticationSucceeded(result);
+
+                      startApp(savedInstanceState);
+                  }
+
+                  @Override
+                  public void onAuthenticationFailed() {
+                      super.onAuthenticationFailed();
+                  }
+
+                  @Override
+                  public void onAuthenticationError(int errorCode, CharSequence errString) {
+                      super.onAuthenticationError(errorCode, errString);
+
+                      finish();
+                  }
+              });
+
+      BiometricPrompt.PromptInfo promptInfo =
+              new BiometricPrompt.PromptInfo.Builder()
+                      .setTitle("Autenticazione")
+                      .setSubtitle("Usa l'impronta digitale")
+                      .setNegativeButtonText("Annulla")
+                      .build();
+
+      biometricPrompt.authenticate(promptInfo);
     }
 
     private void registerForUnifiedPush(final String vapidPublicKey) {
@@ -911,6 +974,32 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    public void onBackPressed() {
+        if (webview.canGoBack()) {
+            webview.goBack();
+        } else {
+            if (doubleBackToExitPressedOnce || !requireDoubleBackToExit) {
+                finish();
+                return;
+            }
+            this.doubleBackToExitPressedOnce = true;
+            Toast.makeText(this, R.string.exit_app, Toast.LENGTH_SHORT).show();
+
+            Handler handler = new Handler(Looper.getMainLooper());
+            handler.postDelayed(() -> doubleBackToExitPressedOnce = false, 2000);
+        }
+    }
+
+    /* Retry Loading the page */
+    public void tryAgain(View v) {
+        parentLayout.removeView(errorLayout);
+        parentLayout.addView(mainLayout);
+        webview.setAlpha(0f);
+        spinner.setVisibility(View.VISIBLE);
+        errorOccurred = false;
+        webview.reload();
+    }
 
     /**
      * This allows for a splash screen
@@ -1209,35 +1298,6 @@ public class MainActivity extends AppCompatActivity {
             startActivity(getIntent());
             return true;
         }
-    }
-
-    boolean doubleBackToExitPressedOnce = false;
-
-    @Override
-    public void onBackPressed() {
-        if (webview.canGoBack()) {
-            webview.goBack();
-        } else {
-            if (doubleBackToExitPressedOnce || !requireDoubleBackToExit) {
-                finish();
-                return;
-            }
-            this.doubleBackToExitPressedOnce = true;
-            Toast.makeText(this, R.string.exit_app, Toast.LENGTH_SHORT).show();
-
-            Handler handler = new Handler(Looper.getMainLooper());
-            handler.postDelayed(() -> doubleBackToExitPressedOnce = false, 2000);
-        }
-    }
-
-    /* Retry Loading the page */
-    public void tryAgain(View v) {
-        parentLayout.removeView(errorLayout);
-        parentLayout.addView(mainLayout);
-        webview.setAlpha(0f);
-        spinner.setVisibility(View.VISIBLE);
-        errorOccurred = false;
-        webview.reload();
     }
 
     // JS API

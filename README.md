@@ -136,6 +136,7 @@ microphoneEnabled      = false        # Allow access to the microphone for audio
 allowMixedContent      = false        # Allow loading HTTP content on HTTPS sites
 cacheMode              = default      # Or: "no_cache" (always network), "aggressive" (offline-first)
 fadeInDuration         = 400          # Duration(in ms) of WebView fadeIn animation after spinner gone
+biometricEnabled       = false        # Enable biometric check on app startup
 ```
 
 ## Edge-to-Edge Display

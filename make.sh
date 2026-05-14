@@ -119,6 +119,9 @@ set_var() {
                 update_permission "android.permission.RECORD_AUDIO" "$val_clean"
                 update_permission "android.permission.MODIFY_AUDIO_SETTINGS" "$val_clean"
                 ;;
+            "biometricEnabled")
+                update_permission "android.permission.USE_BIOMETRIC" "$val_clean"
+                ;;
         esac
     else
         rm "$tmp_file"
