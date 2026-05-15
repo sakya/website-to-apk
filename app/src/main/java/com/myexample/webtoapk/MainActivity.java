@@ -93,6 +93,7 @@ import androidx.biometric.BiometricManager;
 import androidx.biometric.BiometricPrompt;
 import androidx.core.content.ContextCompat;
 import java.util.concurrent.Executor;
+import androidx.activity.OnBackPressedCallback;
 
 public class MainActivity extends AppCompatActivity {
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
@@ -207,6 +208,25 @@ public class MainActivity extends AppCompatActivity {
     private void startApp(Bundle savedInstanceState) {
       if (appStarted) return;
       appStarted = true;
+
+      getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+          @Override
+          public void handleOnBackPressed() {
+            if (webview.canGoBack()) {
+                webview.goBack();
+            } else {
+                if (doubleBackToExitPressedOnce || !requireDoubleBackToExit) {
+                    finish();
+                    return;
+                }
+                doubleBackToExitPressedOnce = true;
+                Toast.makeText(MainActivity.this, R.string.exit_app, Toast.LENGTH_SHORT).show();
+
+                Handler handler = new Handler(Looper.getMainLooper());
+                handler.postDelayed(() -> doubleBackToExitPressedOnce = false, 2000);
+            }
+          }
+      });
 
       if (edgeToEdge) {
           getWindow().setStatusBarColor(Color.TRANSPARENT);
@@ -971,23 +991,6 @@ public class MainActivity extends AppCompatActivity {
         public void onPermissionRequestCanceled(PermissionRequest request) {
             super.onPermissionRequestCanceled(request);
             currentPermissionRequest = null;
-        }
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (webview.canGoBack()) {
-            webview.goBack();
-        } else {
-            if (doubleBackToExitPressedOnce || !requireDoubleBackToExit) {
-                finish();
-                return;
-            }
-            this.doubleBackToExitPressedOnce = true;
-            Toast.makeText(this, R.string.exit_app, Toast.LENGTH_SHORT).show();
-
-            Handler handler = new Handler(Looper.getMainLooper());
-            handler.postDelayed(() -> doubleBackToExitPressedOnce = false, 2000);
         }
     }
 
