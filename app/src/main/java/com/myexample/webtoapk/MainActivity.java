@@ -156,6 +156,7 @@ public class MainActivity extends AppCompatActivity {
     boolean microphoneEnabled = false;
     boolean enablePullToRefresh = true;
     boolean biometricEnabled = false;
+    boolean disablePinchToZoom = false;
 
     boolean appStarted = false;
 
@@ -282,6 +283,12 @@ public class MainActivity extends AppCompatActivity {
       webSettings.setUseWideViewPort(true);
       webSettings.setLoadWithOverviewMode(true);
       webview.setWebContentsDebuggingEnabled(DebugWebView);
+
+      if (disablePinchToZoom) {
+        webSettings.setSupportZoom(false);
+        webSettings.setBuiltInZoomControls(false);
+        webSettings.setDisplayZoomControls(false);
+      }
 
       swipe = findViewById(R.id.swipeRefresh);
       swipe.setProgressBackgroundColorSchemeColor(getThemeColor(this, com.google.android.material.R.attr.colorSurface));
